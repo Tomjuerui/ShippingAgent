@@ -1,0 +1,88 @@
+# 测试专用配置：随仓库入库，CI 与本地 pytest 共用同一份，避免依赖未入库的 config.yaml。
+# 密钥仍只从环境变量读取；离线测试用 fakes 回放 LLM/OCR，本文件不会发起真实请求。
+project:
+  version: "1.0.0"
+  prompt_version: "v1"
+
+accounting_entity:
+  name: "Origin Agent"
+  aliases: ["Origin Agent Co., Ltd.", "OA"]
+
+llm:
+  profile: "local_proxy"
+  profiles:
+    local_proxy:
+      base_url: "http://127.0.0.1:8788/v1"
+      model: "deepseek-v4.1-flash"
+      api_key_env: "LLM_API_KEY"
+    deepseek_official:
+      base_url: "https://api.deepseek.com/v1"
+      model: "deepseek-chat"
+      api_key_env: "DEEPSEEK_API_KEY"
+    openai:
+      base_url: "https://api.openai.com/v1"
+      model: "gpt-4o-mini"
+      api_key_env: "OPENAI_API_KEY"
+  api_key_env: "LLM_API_KEY"
+  temperature: 0
+  timeout_seconds: 120
+  max_retries: 2
+  structured_output: "auto"
+  cache_enabled: true
+  cache_dir: ".cache/llm"
+
+ocr:
+  url: "${OCR_URL:http://127.0.0.1:5002/process}"
+  task: "orderChange"
+  exposer: "${OCR_EXPOSER:auto}"
+  proxy_base_url: "${FILE_PROXY_BASE_URL:}"
+  proxy_token_ttl_minutes: 30
+  object_storage:
+    endpoint: "${OSS_ENDPOINT:}"
+    bucket: "${OSS_BUCKET:}"
+    access_key_id_env: "OSS_AK"
+    secret_key_env: "OSS_SK"
+    region: "${OSS_REGION:}"
+    ttl_minutes: 30
+  temp_host_enabled: false
+  temp_host_url: "https://transfer.sh"
+  retries: 3
+  connect_timeout: 10
+  read_timeout: 300
+  min_text_chars: 40
+  record_dir: "tests/fixtures/vcr"
+
+matching:
+  l4_enabled: true
+  l4_to_review: true
+  l4_allow_missing_container: true
+  amount_tolerance: 0.01
+  date_window_days: 3
+  derived_keys_enabled: true
+  fuzzy_ratio: 90
+
+arap:
+  policy: "reversed_posting"
+  direction_ar_keywords: ["collect from", "bill to", "invoice to", "应收", "向我方收取"]
+  direction_ap_keywords: ["we will pay", "we pay", "debit us", "应付", "我方支付"]
+
+thresholds:
+  review_below: 0.70
+  low_confidence_below: 0.85
+
+paths:
+  output_dir: "${SBA_OUTPUT_DIR:output}"
+  data_dir: "${SBA_DATA_DIR:data}"
+  cache_dir: ".cache"
+
+web:
+  host: "127.0.0.1"
+  port: 8000
+  upload_limit_mb: 20
+  max_files_per_batch: 20
+  concurrency: 3
+
+pipeline:
+  max_eml_depth: 3
+  max_text_chars_per_chunk: 12000
+  enable_sqlite_checkpoint: true

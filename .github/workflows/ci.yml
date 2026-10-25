@@ -7,6 +7,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      # 仓库只入库测试配置，config.yaml 属本地运行配置（由 config.sample.yaml 复制）
+      SBA_CONFIG: tests/config.test.yaml
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

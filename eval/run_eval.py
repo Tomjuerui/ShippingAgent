@@ -394,7 +394,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"未找到用例：{sorted(wanted)}", file=sys.stderr)
             return 2
 
-    settings = load(ROOT / "config.yaml")
+    # 交给 settings.load 解析 SBA_CONFIG，硬编码 config.yaml 会让 CI 找不到入库配置
+    settings = load()
     results = []
     with tempfile.TemporaryDirectory(prefix="sba-eval-") as temp:
         temp_path = Path(temp)

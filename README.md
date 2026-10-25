@@ -84,6 +84,9 @@ cp .env.example .env     # Windows: copy .env.example .env
 cp config.sample.yaml config.yaml   # config.yaml 属本地运行配置，不入库；样例可直接用
 ```
 
+测试不需要 `config.yaml`：`conftest.py` 会把 `SBA_CONFIG` 指向入库的 `tests/config.test.yaml`，
+本地与 CI 因此使用同一份配置。手动跑评测或 CLI 时若想用同一份，可 `export SBA_CONFIG=tests/config.test.yaml`。
+
 ### 3.2 配置密钥（不要提交 .env）
 
 编辑 `.env`：
