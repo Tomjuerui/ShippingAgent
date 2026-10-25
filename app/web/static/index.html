@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>航运智能账单助手</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="26" height="26"><path d="M3 20c3 2 6 2 9 0s6-2 9 0 6 2 8 0" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M16 5v11M10 9l6-4 6 4" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+      <div>
+        <h1>航运智能账单助手</h1>
+        <p class="brand-sub">多格式账单解析 · 增量对账 · 可审计 JSON</p>
+      </div>
+    </div>
+    <div class="health-chips" id="healthChips">
+      <span class="chip chip-loading">正在检查服务状态…</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="main-col">
+      <div class="card upload-card" id="uploadCard">
+        <div class="card-head">
+          <div>
+            <h2>上传账单材料</h2>
+            <p class="muted">EML / PDF / 图片 / Excel / Word，单文件 ≤ 20 MB，单批 ≤ 20 个文件</p>
+          </div>
+        </div>
+        <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="上传账单文件">
+          <div class="drop-icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48" width="40" height="40"><path d="M24 32V12m0 0-8 8m8-8 8 8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 32v4a4 4 0 0 0 4 4h24a4 4 0 0 0 4-4v-4" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+          </div>
+          <strong>拖拽文件到此处，或点击选择</strong>
+          <span class="muted">支持转发邮件内的嵌套附件（≤3 层）</span>
+        </div>
+        <label class="native-pick">
+          <span>或使用系统文件选择器</span>
+          <input type="file" id="fileInput" multiple
+                 accept=".eml,.pdf,.jpg,.jpeg,.png,.tiff,.tif,.xls,.xlsx,.doc,.docx" />
+        </label>
+        <div class="file-list" id="fileList"></div>
+
+        <div class="bills-row">
+          <label class="bills-pick">
+            <span>已有账单 JSON（可选）</span>
+            <input type="file" id="billInput" accept=".json" multiple />
+          </label>
+          <div class="file-list compact" id="billList"></div>
+        </div>
+
+        <div class="actions">
+          <button class="btn primary" id="submitBtn">
+            <span class="btn-label">开始处理</span>
+            <span class="spinner hidden" aria-hidden="true"></span>
+          </button>
+          <button class="btn ghost" id="clearBtn">清空</button>
+          <span class="muted small" id="uploadHint"></span>
+        </div>
+      </div>
+
+      <div class="card progress-card hidden" id="progressCard">
+        <div class="card-head">
+          <div>
+            <h2>处理进度</h2>
+            <p class="muted mono" id="batchIdText">—</p>
+          </div>
+          <span class="status-pill" id="batchStatusPill">排队中</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-meta">
+          <span id="progressText">0%</span>
+          <span id="progressFiles">0 / 0 个文件</span>
+        </div>
+        <div class="count-grid" id="countGrid"></div>
+        <div class="table-wrap">
+          <table class="data-table compact-table">
+            <thead><tr><th>文件</th><th>状态</th><th>记录</th><th>说明</th></tr></thead>
+            <tbody id="progressBody"><tr><td colspan="4" class="empty-cell">等待处理…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card results-card hidden" id="resultsCard">
+        <div class="card-head">
+          <div>
+            <h2>处理结果</h2>
+            <p class="muted" id="resultsMeta">—</p>
+          </div>
+          <div class="toolbar">
+            <button class="btn small ghost" id="exportBtn">下载完整 JSON</button>
+          </div>
+        </div>
+        <div class="filters">
+          <div class="filter-group" id="filterGroup">
+            <button class="filter active" data-op="">全部 <span id="countAll">0</span></button>
+            <button class="filter" data-op="CREATE">新增 <span id="countCreate">0</span></button>
+            <button class="filter" data-op="UPDATE">更新 <span id="countUpdate">0</span></button>
+            <button class="filter" data-op="NOCHANGE">无变化 <span id="countNochange">0</span></button>
+            <button class="filter" data-op="PENDING_REVIEW">待复核 <span id="countReview">0</span></button>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="lowOnly" />
+            <span>仅看低置信</span>
+          </label>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table records-table">
+            <thead>
+              <tr>
+                <th>记录 ID</th><th>操作</th><th>单据号</th><th>费用名称（原始 → 标准）</th>
+                <th class="num">金额</th><th>AR/AP</th><th>置信度</th>
+              </tr>
+            </thead>
+            <tbody id="recordsBody"><tr><td colspan="7" class="empty-cell">暂无记录</td></tr></tbody>
+          </table>
+        </div>
+        <p class="muted small table-hint">点击任意记录查看结构化字段、原文快照与完整审计链。</p>
+      </div>
+    </section>
+
+    <aside class="side-col">
+      <div class="card">
+        <div class="card-head"><div><h2>服务状态</h2><p class="muted">LLM 与 OCR 外发策略</p></div></div>
+        <div id="serviceStatus" class="service-list">
+          <div class="service-item"><span class="dot dot-loading"></span><span>检查中…</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div><h2>历史批次</h2><p class="muted">读取 output/ 目录</p></div>
+          <button class="icon-btn" id="refreshHistory" title="刷新" aria-label="刷新历史批次">
+            <svg viewBox="0 0 24 24" width="18" height="18"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+        <div id="historyList" class="history-list">
+          <p class="muted small">暂无历史批次</p>
+        </div>
+      </div>
+
+      <div class="card tips-card">
+        <h2>使用提示</h2>
+        <ul>
+          <li>已有账单 JSON 可一并上传，系统按 L1–L4 四级键匹配并只做增量更新。</li>
+          <li>待复核记录以橙色标识，详情里能看到触发原因与校验证据。</li>
+          <li>同一文件重复上传会按哈希识别，输出 NOCHANGE 并注明重复提交。</li>
+        </ul>
+      </div>
+    </aside>
+  </main>
+
+  <div class="modal hidden" id="detailModal" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+    <div class="modal-panel">
+      <div class="modal-head">
+        <div>
+          <h2 id="detailTitle">记录详情</h2>
+          <p class="muted mono" id="detailSubtitle">—</p>
+        </div>
+        <div class="modal-actions">
+          <button class="btn small ghost" id="copyJsonBtn">复制 JSON</button>
+          <button class="btn small ghost" id="downloadRecordBtn">下载记录</button>
+          <button class="icon-btn" id="closeModal" aria-label="关闭">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div class="detail-left" id="detailFields"></div>
+        <div class="detail-right">
+          <div class="code-head"><span>完整 JSON</span><span class="mono" id="jsonBadge"></span></div>
+          <pre class="code-block"><code id="jsonCode"></code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden" role="status"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
