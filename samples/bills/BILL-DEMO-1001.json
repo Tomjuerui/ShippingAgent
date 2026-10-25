@@ -1,0 +1,33 @@
+{
+  "bill_id": "BILL-DEMO-1001",
+  "version": 1,
+  "document_info": {
+    "document_type": "Debit Note",
+    "reference_no": "DN-2026-1001",
+    "document_date": "2026-10-20"
+  },
+  "shipment_info": {
+    "bl_no": "OOLU4055331281",
+    "booking_no": "BK-2026-889",
+    "container_no": "TIIU8975975"
+  },
+  "transaction_party": {
+    "issuer": "Destination Agent",
+    "recipient": "湃乐多（上海）航运科技有限公司"
+  },
+  "charges": [
+    {
+      "charge_item": "Handling Charge",
+      "original_charge_name": "H/D Fee",
+      "quantity": 2,
+      "unit_price": 20.0,
+      "amount": 35.0,
+      "currency": "USD",
+      "payment_term": "PP"
+    }
+  ],
+  "financial_attributes": {
+    "accounting_entity": "湃乐多（上海）航运科技有限公司",
+    "posting_type": "AP"
+  }
+}
