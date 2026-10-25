@@ -1,0 +1,174 @@
+# 费用名称标准映射（PRD 附录 A.1 + 常见扩充）
+# 匹配顺序：精确 → 归一化 → 别名 → 模糊（≥阈值）→ 保留原文
+version: "2026.10.24"
+canonical:
+  - name: Handling Charge
+    aliases:
+      - Handling Fee
+      - H/D Fee
+      - HD Fee
+      - Handle Fee
+      - Handling
+      - H/C
+      - HC
+      - 操作费
+      - 手续费
+      - 装卸费
+  - name: Documentation Fee
+    aliases:
+      - Doc Fee
+      - Docs Fee
+      - Document Fee
+      - Documentation
+      - 文件费
+      - 单证费
+  - name: Terminal Handling Charge
+    aliases:
+      - THC
+      - Terminal Handling
+      - Terminal Handling Fee
+      - 码头操作费
+      - 码头费
+  - name: Trucking Charge
+    aliases:
+      - Trucking Fee
+      - Trucking
+      - Truck Fee
+      - Inland Haulage
+      - 拖车费
+      - 卡车费
+  - name: Customs Clearance Fee
+    aliases:
+      - Customs Fee
+      - Customs Clearance
+      - Custom Clearance Fee
+      - 报关费
+      - 清关费
+  - name: Storage Charge
+    aliases:
+      - Storage Fee
+      - Storage
+      - 仓储费
+      - 堆存费
+  - name: Delivery Order Fee
+    aliases:
+      - D/O Fee
+      - DO Fee
+      - D/O
+      - 换单费
+  - name: Ocean Freight
+    aliases:
+      - O/F
+      - OF
+      - Ocean Freight Charge
+      - Sea Freight
+      - 海运费
+      - 运费
+  - name: Bunker Adjustment Factor
+    aliases:
+      - BAF
+      - BAF Surcharge
+      - Bunker Surcharge
+      - 燃油附加费
+  - name: Container Freight Station Charge
+    aliases:
+      - CFS Charge
+      - CFS Fee
+      - CFS
+      - 拼箱费
+      - 场站费
+  - name: Seal Charge
+    aliases:
+      - Seal Fee
+      - Seal
+      - 铅封费
+  - name: ISPS Charge
+    aliases:
+      - ISPS
+      - ISPS Fee
+      - 安保附加费
+  - name: Port Congestion Surcharge
+    aliases:
+      - PCS
+      - Port Congestion Fee
+      - 港口拥堵附加费
+  - name: Peak Season Surcharge
+    aliases:
+      - PSS
+      - Peak Season Fee
+      - 旺季附加费
+  - name: Bill of Lading Fee
+    aliases:
+      - B/L Fee
+      - BL Fee
+      - Bill Lading Fee
+      - 提单费
+  - name: Telex Release Fee
+    aliases:
+      - Telex Release
+      - 电放费
+  - name: AMS Fee
+    aliases:
+      - AMS
+      - Automated Manifest System Fee
+      - 舱单费
+  - name: ENS Fee
+    aliases:
+      - ENS
+      - Entry Summary Declaration Fee
+  - name: ISF Fee
+    aliases:
+      - ISF
+      - Importer Security Filing Fee
+  - name: Demurrage
+    aliases:
+      - Demurrage Charge
+      - 滞期费
+  - name: Detention
+    aliases:
+      - Detention Charge
+      - Detention Free Time Charge
+      - Additional Detention Free Time Charge
+      - ADD'L DETENTION FREE TIME CHARGE
+      - 滞箱费
+  - name: On Carriage Charge
+    aliases:
+      - On Carriage
+      - On Carriage Additional
+      - OCA
+      - 转运费
+  - name: Inspection Fee
+    aliases:
+      - Inspection Charge
+      - 查验费
+      - 检验费
+  - name: Insurance Premium
+    aliases:
+      - Insurance
+      - Insurance Fee
+      - 保险费
+  - name: Agency Fee
+    aliases:
+      - Agency Charge
+      - Agent Fee
+      - 代理费
+  - name: Amendment Fee
+    aliases:
+      - Amendment Charge
+      - 改单费
+  - name: Courier Fee
+    aliases:
+      - Courier Charge
+      - Express Fee
+      - 快递费
+  - name: Bank Charge
+    aliases:
+      - Bank Fee
+      - Banking Charge
+      - 银行手续费
+  - name: Miscellaneous Charge
+    aliases:
+      - Misc Fee
+      - Misc Charge
+      - Miscellaneous
+      - 杂费

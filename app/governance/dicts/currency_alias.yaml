@@ -1,0 +1,48 @@
+# 币种别名与 ISO 4217 白名单（PRD 附录 A.2）
+version: "2026.10.24"
+iso4217:
+  - USD
+  - CNY
+  - EUR
+  - HKD
+  - GBP
+  - JPY
+  - SGD
+  - AUD
+  - CAD
+  - NZD
+  - CHF
+  - KRW
+  - TWD
+  - THB
+  - MYR
+  - IDR
+  - PHP
+  - VND
+  - INR
+  - AED
+  - SAR
+  - RUB
+  - BRL
+  - MXN
+  - ZAR
+  - TRY
+  - SEK
+  - NOK
+  - DKK
+  - PLN
+aliases:
+  USD: ["US$", "USD$", "$", "＄", "US DOLLAR", "US DOLLARS", "美元", "美金"]
+  CNY: ["RMB", "￥", "CNY", "人民币", "元", "RMB￥", "CN¥"]
+  EUR: ["€", "EUR", "欧元"]
+  HKD: ["HK$", "HKD$", "HKD", "港币", "港元"]
+  GBP: ["£", "GBP", "英镑"]
+  JPY: ["JPY", "日元", "日币", "円"]
+  SGD: ["S$", "SGD$", "SGD", "新加坡元", "新币"]
+  AUD: ["A$", "AUD$", "AUD", "澳元"]
+  CAD: ["C$", "CAD$", "CAD", "加元"]
+  TWD: ["NT$", "TWD", "新台币"]
+  KRW: ["KRW", "韩元"]
+  THB: ["THB", "泰铢"]
+  MYR: ["MYR", "RM", "马币"]
+  AED: ["AED", "迪拉姆"]
