@@ -1,0 +1,24 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.env
+.cache/
+output/
+data/uploads/
+data/bills/
+data/tmp/
+tests/fixtures/vcr/*.json
+!tests/fixtures/vcr/.gitkeep
+*.sqlite
+*.sqlite3
+
+# 本地运行配置（含环境相关取值），入库版本请用 config.sample.yaml
+config.yaml
+
+# 真实业务语料（EML/PDF/图片，含公司与单号），不入库；本地自行放入 samples/original/
+samples/original/*
+!samples/original/.gitkeep
+
+# 本地评测产物，非源码
+eval/reports/eval-*
