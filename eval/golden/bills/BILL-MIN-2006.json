@@ -1,0 +1,26 @@
+{
+  "bill_id": "BILL-MIN-2006",
+  "document_info": {
+    "document_type": "Debit Note",
+    "reference_no": "OOLU4055331281",
+    "document_date": "2026-09-27"
+  },
+  "transaction_party": {
+    "issuer": "Destination Agent",
+    "recipient": "Origin Agent"
+  },
+  "charge_details": {
+    "original_charge_name": "THC",
+    "charge_item": "Terminal Handling Charge",
+    "quantity": 1,
+    "unit_price": 100.0,
+    "amount": 100.0,
+    "currency": "USD",
+    "payment_term": "CC"
+  },
+  "audit_trail": {
+    "ai_reasoning": [
+      "历史最小格式账单"
+    ]
+  }
+}

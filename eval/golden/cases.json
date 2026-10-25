@@ -1,0 +1,978 @@
+{
+  "version": "2026.10.24",
+  "cases": [
+    {
+      "id": "excel_standard",
+      "file": "files/excel_standard.xlsx",
+      "bills": [],
+      "match_keywords": [
+        "H/D Fee",
+        "DN-2026-2001"
+      ],
+      "ocr": null,
+      "extraction": {
+        "extraction_id": null,
+        "document_type": "DEBIT NOTE",
+        "reference_no": "DN-2026-2001",
+        "document_date": "2026-09-20",
+        "shipment_info": {
+          "bl_no": null,
+          "booking_no": null,
+          "container_no": null,
+          "vessel_voyage": null,
+          "pol": null,
+          "pod": null
+        },
+        "issuer": "Destination Agent",
+        "recipient": "Origin Agent",
+        "charges": [
+          {
+            "line_id": null,
+            "original_charge_name": "H/D Fee",
+            "quantity": 2,
+            "unit_price": 20.0,
+            "amount": 40.0,
+            "currency": "USD",
+            "payment_term": "PREPAID",
+            "snippet": "H/D Fee 2 20 40 USD PREPAID",
+            "locator": null,
+            "confidence": {
+              "original_charge_name": 0.99,
+              "quantity": 0.99,
+              "unit_price": 0.99,
+              "amount": 0.99,
+              "currency": 0.99,
+              "payment_term": 0.99
+            }
+          }
+        ],
+        "totals": [
+          {
+            "kind": "total",
+            "amount": 40.0,
+            "currency": "USD"
+          }
+        ],
+        "direction_statement": null,
+        "field_confidence": {
+          "document_type": 0.99,
+          "reference_no": 0.99,
+          "document_date": 0.99,
+          "issuer": 0.99,
+          "recipient": 0.99,
+          "bl_no": 0.5,
+          "container_no": 0.5
+        }
+      },
+      "expected_records": [
+        {
+          "document_type": "Debit Note",
+          "reference_no": "DN-2026-2001",
+          "document_date": "2026-09-20",
+          "issuer": "Destination Agent",
+          "recipient": "Origin Agent",
+          "original_charge_name": "H/D Fee",
+          "charge_item": "Handling Charge",
+          "amount": 40.0,
+          "currency": "USD",
+          "payment_term": "PP",
+          "posting_type": "AP",
+          "operation": "CREATE",
+          "match_level": "NONE",
+          "review_reason": null,
+          "changed_fields_contains": []
+        }
+      ]
+    },
+    {
+      "id": "word_credit_note",
+      "file": "files/word_credit_note.docx",
+      "bills": [],
+      "match_keywords": [
+        "Doc Fee",
+        "CN-2026-2002"
+      ],
+      "ocr": null,
+      "extraction": {
+        "extraction_id": null,
+        "document_type": "CREDIT NOTE",
+        "reference_no": "CN-2026-2002",
+        "document_date": "2026-09-22",
+        "shipment_info": {
+          "bl_no": null,
+          "booking_no": null,
+          "container_no": null,
+          "vessel_voyage": null,
+          "pol": null,
+          "pod": null
+        },
+        "issuer": "Origin Agent",
+        "recipient": "Destination Agent",
+        "charges": [
+          {
+            "line_id": null,
+            "original_charge_name": "Doc Fee",
+            "quantity": 1,
+            "unit_price": 35.0,
+            "amount": -35.0,
+            "currency": "USD",
+            "payment_term": null,
+            "snippet": "Doc Fee 1 35 -35 USD",
+            "locator": null,
+            "confidence": {
+              "original_charge_name": 0.99,
+              "quantity": 0.99,
+              "unit_price": 0.99,
+              "amount": 0.99,
+              "currency": 0.99,
+              "payment_term": 0.0
+            }
+          }
+        ],
+        "totals": [
+          {
+            "kind": "total",
+            "amount": -35.0,
+            "currency": "USD"
+          }
+        ],
+        "direction_statement": null,
+        "field_confidence": {
+          "document_type": 0.99,
+          "reference_no": 0.99,
+          "document_date": 0.99,
+          "issuer": 0.99,
+          "recipient": 0.99,
+          "bl_no": 0.5,
+          "container_no": 0.5
+        }
+      },
+      "expected_records": [
+        {
+          "document_type": "Credit Note",
+          "reference_no": "CN-2026-2002",
+          "document_date": "2026-09-22",
+          "issuer": "Origin Agent",
+          "recipient": "Destination Agent",
+          "original_charge_name": "Doc Fee",
+          "charge_item": "Documentation Fee",
+          "amount": -35.0,
+          "currency": "USD",
+          "payment_term": null,
+          "posting_type": "AP",
+          "operation": "CREATE",
+          "match_level": "NONE",
+          "review_reason": null,
+          "changed_fields_contains": []
+        }
+      ]
+    },
+    {
+      "id": "pdf_update",
+      "file": "files/pdf_update.pdf",
+      "bills": [
+        "bills/BILL-2003.json"
+      ],
+      "match_keywords": [
+        "THC",
+        "DN-2026-2003"
+      ],
+      "ocr": null,
+      "extraction": {
+        "extraction_id": null,
+        "document_type": "DEBIT NOTE",
+        "reference_no": "DN-2026-2003",
+        "document_date": "2026-09-25",
+        "shipment_info": {
+          "bl_no": "OOLU4055331281",
+          "booking_no": null,
+          "container_no": "TIIU8975975",
+          "vessel_voyage": null,
+          "pol": null,
+          "pod": null
+        },
+        "issuer": "Destination Agent",
+        "recipient": "Origin Agent",
+        "charges": [
+          {
+            "line_id": null,
+            "original_charge_name": "THC",
+            "quantity": 1,
+            "unit_price": 100.0,
+            "amount": 100.0,
+            "currency": "USD",
+            "payment_term": "CC",
+            "snippet": "THC 1 100 100 USD CC",
+            "locator": null,
+            "confidence": {
+              "original_charge_name": 0.99,
+              "quantity": 0.99,
+              "unit_price": 0.99,
+              "amount": 0.99,
+              "currency": 0.99,
+              "payment_term": 0.99
+            }
+          }
+        ],
+        "totals": [
+          {
+            "kind": "total",
+            "amount": 100.0,
+            "currency": "USD"
+          }
+        ],
+        "direction_statement": null,
+        "field_confidence": {
+          "document_type": 0.99,
+          "reference_no": 0.99,
+          "document_date": 0.99,
+          "issuer": 0.99,
+          "recipient": 0.99,
+          "bl_no": 0.99,
+          "container_no": 0.99
+        }
+      },
+      "expected_records": [
+        {
+          "document_type": "Debit Note",
+          "reference_no": "DN-2026-2003",
+          "document_date": "2026-09-25",
+          "issuer": "Destination Agent",
+          "recipient": "Origin Agent",
+          "original_charge_name": "THC",
+          "charge_item": "Terminal Handling Charge",
+          "amount": 100.0,
+          "currency": "USD",
+          "payment_term": "CC",
+          "posting_type": "AP",
+          "operation": "UPDATE",
+          "match_level": "L1",
+          "review_reason": null,
+          "changed_fields_contains": [
+            "charge_details.amount"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "eml_attachment",
+      "file": "files/eml_with_attachment.eml",
+      "bills": [],
+      "match_keywords": [
+        "Trucking Fee",
+        "DN-2026-2004"
+      ],
+      "ocr": null,
+      "extraction": {
+        "extraction_id": null,
+        "document_type": "DEBIT NOTE",
+        "reference_no": "DN-2026-2004",
+        "document_date": "2026-09-26",
+        "shipment_info": {
+          "bl_no": null,
+          "booking_no": null,
+          "container_no": null,
+          "vessel_voyage": null,
+          "pol": null,
+          "pod": null
+        },
+        "issuer": "Destination Agent",
+        "recipient": "Origin Agent",
+        "charges": [
+          {
+            "line_id": null,
+            "original_charge_name": "Trucking Fee",
+            "quantity": 1,
+            "unit_price": 50.0,
+            "amount": 50.0,
+            "currency": "USD",
+            "payment_term": "PREPAID",
+            "snippet": "Trucking Fee 1 50 50 USD PREPAID",
+            "locator": null,
+            "confidence": {
+              "original_charge_name": 0.99,
+              "quantity": 0.99,
+              "unit_price": 0.99,
+              "amount": 0.99,
+              "currency": 0.99,
+              "payment_term": 0.99
+            }
+          }
+        ],
+        "totals": [
+          {
+            "kind": "total",
+            "amount": 50.0,
+            "currency": "USD"
+          }
+        ],
+        "direction_statement": null,
+        "field_confidence": {
+          "document_type": 0.99,
+          "reference_no": 0.99,
+          "document_date": 0.99,
+          "issuer": 0.99,
+          "recipient": 0.99,
+          "bl_no": 0.5,
+          "container_no": 0.5
+        }
+      },
+      "expected_records": [
+        {
+          "document_type": "Debit Note",
+          "reference_no": "DN-2026-2004",
+          "document_date": "2026-09-26",
+          "issuer": "Destination Agent",
+          "recipient": "Origin Agent",
+          "original_charge_name": "Trucking Fee",
+          "charge_item": "Trucking Charge",
+          "amount": 50.0,
+          "currency": "USD",
+          "payment_term": "PP",
+          "posting_type": "AP",
+          "operation": "CREATE",
+          "match_level": "NONE",
+          "review_reason": null,
+          "changed_fields_contains": []
+        }
+      ]
+    },
+    {
+      "id": "image_ocr",
+      "file": "files/image_scan.png",
+      "bills": [],
+      "match_keywords": [
+        "Customs Fee",
+        "DN-2026-2005"
+      ],
+      "ocr": {
+        "lines": [
+          "DEBIT NOTE DN-2026-2005",
+          "Date 2026-09-26 Issuer Destination Agent Recipient Origin Agent",
+          "Customs Fee 80.00 USD PREPAID",
+          "Total 80.00 USD"
+        ],
+        "confidence": 0.96
+      },
+      "extraction": {
+        "extraction_id": null,
+        "document_type": "DEBIT NOTE",
+        "reference_no": "DN-2026-2005",
+        "document_date": "2026-09-26",
+        "shipment_info": {
+          "bl_no": null,
+          "booking_no": null,
+          "container_no": null,
+          "vessel_voyage": null,
+          "pol": null,
+          "pod": null
+        },
+        "issuer": "Destination Agent",
+        "recipient": "Origin Agent",
+        "charges": [
+          {
+            "line_id": null,
+            "original_charge_name": "Customs Fee",
+            "quantity": 1,
+            "unit_price": 80.0,
+            "amount": 80.0,
+            "currency": "USD",
+            "payment_term": "PREPAID",
+            "snippet": "Customs Fee 80.00 USD PREPAID",
+            "locator": null,
+            "confidence": {
+              "original_charge_name": 0.99,
+              "quantity": 0.99,
+              "unit_price": 0.99,
+              "amount": 0.99,
+              "currency": 0.99,
+              "payment_term": 0.99
+            }
+          }
+        ],
+        "totals": [
+          {
+            "kind": "total",
+            "amount": 80.0,
+            "currency": "USD"
+          }
+        ],
+        "direction_statement": null,
+        "field_confidence": {
+          "document_type": 0.99,
+          "reference_no": 0.99,
+          "document_date": 0.99,
+          "issuer": 0.99,
+          "recipient": 0.99,
+          "bl_no": 0.5,
+          "container_no": 0.5
+        }
+      },
+      "expected_records": [
+        {
+          "document_type": "Debit Note",
+          "reference_no": "DN-2026-2005",
+          "document_date": "2026-09-26",
+          "issuer": "Destination Agent",
+          "recipient": "Origin Agent",
+          "original_charge_name": "Customs Fee",
+          "charge_item": "Customs Clearance Fee",
+          "amount": 80.0,
+          "currency": "USD",
+          "payment_term": "PP",
+          "posting_type": "AP",
+          "operation": "CREATE",
+          "match_level": "NONE",
+          "review_reason": null,
+          "changed_fields_contains": []
+        }
+      ]
+    },
+    {
+      "id": "minimal_l2",
+      "file": "files/minimal_l2.xlsx",
+      "bills": [
+        "bills/BILL-MIN-2006.json"
+      ],
+      "match_keywords": [
+        "THC",
+        "OOLU4055331281"
+      ],
+      "ocr": null,
+      "extraction": {
+        "extraction_id": null,
+        "document_type": "DEBIT NOTE",
+        "reference_no": null,
+        "document_date": "2026-09-27",
+        "shipment_info": {
+          "bl_no": "OOLU4055331281",
+          "booking_no": null,
+          "container_no": null,
+          "vessel_voyage": null,
+          "pol": null,
+          "pod": null
+        },
+        "issuer": "Destination Agent",
+        "recipient": "Origin Agent",
+        "charges": [
+          {
+            "line_id": null,
+            "original_charge_name": "THC",
+            "quantity": 1,
+            "unit_price": 100.0,
+            "amount": 100.0,
+            "currency": "USD",
+            "payment_term": "CC",
+            "snippet": "THC 1 100 100 USD CC",
+            "locator": null,
+            "confidence": {
+              "original_charge_name": 0.99,
+              "quantity": 0.99,
+              "unit_price": 0.99,
+              "amount": 0.99,
+              "currency": 0.99,
+              "payment_term": 0.99
+            }
+          }
+        ],
+        "totals": [
+          {
+            "kind": "total",
+            "amount": 100.0,
+            "currency": "USD"
+          }
+        ],
+        "direction_statement": null,
+        "field_confidence": {
+          "document_type": 0.99,
+          "reference_no": 0.5,
+          "document_date": 0.99,
+          "issuer": 0.99,
+          "recipient": 0.99,
+          "bl_no": 0.99,
+          "container_no": 0.5
+        }
+      },
+      "expected_records": [
+        {
+          "document_type": "Debit Note",
+          "reference_no": "OOLU4055331281",
+          "document_date": "2026-09-27",
+          "issuer": "Destination Agent",
+          "recipient": "Origin Agent",
+          "original_charge_name": "THC",
+          "charge_item": "Terminal Handling Charge",
+          "amount": 100.0,
+          "currency": "USD",
+          "payment_term": "CC",
+          "posting_type": "AP",
+          "operation": "NOCHANGE",
+          "match_level": "L2",
+          "review_reason": null,
+          "changed_fields_contains": []
+        }
+      ]
+    },
+    {
+      "id": "multi_currency",
+      "file": "files/multi_currency.xlsx",
+      "bills": [],
+      "match_keywords": [
+        "O/F",
+        "DN-2026-2007"
+      ],
+      "ocr": null,
+      "extraction": {
+        "extraction_id": null,
+        "document_type": "DEBIT NOTE",
+        "reference_no": "DN-2026-2007",
+        "document_date": "2026-09-28",
+        "shipment_info": {
+          "bl_no": null,
+          "booking_no": null,
+          "container_no": null,
+          "vessel_voyage": null,
+          "pol": null,
+          "pod": null
+        },
+        "issuer": "Destination Agent",
+        "recipient": "Origin Agent",
+        "charges": [
+          {
+            "line_id": null,
+            "original_charge_name": "O/F",
+            "quantity": 1,
+            "unit_price": 100.0,
+            "amount": 100.0,
+            "currency": "USD",
+            "payment_term": "PP",
+            "snippet": "O/F 1 100 100 USD PP",
+            "locator": null,
+            "confidence": {
+              "original_charge_name": 0.99,
+              "quantity": 0.99,
+              "unit_price": 0.99,
+              "amount": 0.99,
+              "currency": 0.99,
+              "payment_term": 0.99
+            }
+          },
+          {
+            "line_id": null,
+            "original_charge_name": "THC",
+            "quantity": 1,
+            "unit_price": 200.0,
+            "amount": 200.0,
+            "currency": "CNY",
+            "payment_term": "CC",
+            "snippet": "THC 1 200 200 CNY CC",
+            "locator": null,
+            "confidence": {
+              "original_charge_name": 0.99,
+              "quantity": 0.99,
+              "unit_price": 0.99,
+              "amount": 0.99,
+              "currency": 0.99,
+              "payment_term": 0.99
+            }
+          }
+        ],
+        "totals": [
+          {
+            "kind": "total",
+            "amount": 100.0,
+            "currency": "USD"
+          },
+          {
+            "kind": "total",
+            "amount": 200.0,
+            "currency": "CNY"
+          }
+        ],
+        "direction_statement": null,
+        "field_confidence": {
+          "document_type": 0.99,
+          "reference_no": 0.99,
+          "document_date": 0.99,
+          "issuer": 0.99,
+          "recipient": 0.99,
+          "bl_no": 0.5,
+          "container_no": 0.5
+        }
+      },
+      "expected_records": [
+        {
+          "document_type": "Debit Note",
+          "reference_no": "DN-2026-2007",
+          "document_date": "2026-09-28",
+          "issuer": "Destination Agent",
+          "recipient": "Origin Agent",
+          "original_charge_name": "O/F",
+          "charge_item": "Ocean Freight",
+          "amount": 100.0,
+          "currency": "USD",
+          "payment_term": "PP",
+          "posting_type": "AP",
+          "operation": "CREATE",
+          "match_level": "NONE",
+          "review_reason": null,
+          "changed_fields_contains": []
+        },
+        {
+          "document_type": "Debit Note",
+          "reference_no": "DN-2026-2007",
+          "document_date": "2026-09-28",
+          "issuer": "Destination Agent",
+          "recipient": "Origin Agent",
+          "original_charge_name": "THC",
+          "charge_item": "Terminal Handling Charge",
+          "amount": 200.0,
+          "currency": "CNY",
+          "payment_term": "CC",
+          "posting_type": "AP",
+          "operation": "CREATE",
+          "match_level": "NONE",
+          "review_reason": null,
+          "changed_fields_contains": []
+        }
+      ]
+    },
+    {
+      "id": "sum_mismatch",
+      "file": "files/sum_mismatch.xlsx",
+      "bills": [],
+      "match_keywords": [
+        "H/D Fee",
+        "DN-2026-2008"
+      ],
+      "ocr": null,
+      "extraction": {
+        "extraction_id": null,
+        "document_type": "DEBIT NOTE",
+        "reference_no": "DN-2026-2008",
+        "document_date": "2026-09-29",
+        "shipment_info": {
+          "bl_no": null,
+          "booking_no": null,
+          "container_no": null,
+          "vessel_voyage": null,
+          "pol": null,
+          "pod": null
+        },
+        "issuer": "Destination Agent",
+        "recipient": "Origin Agent",
+        "charges": [
+          {
+            "line_id": null,
+            "original_charge_name": "H/D Fee",
+            "quantity": 2,
+            "unit_price": 20.0,
+            "amount": 40.0,
+            "currency": "USD",
+            "payment_term": "PREPAID",
+            "snippet": "H/D Fee 2 20 40 USD PREPAID",
+            "locator": null,
+            "confidence": {
+              "original_charge_name": 0.99,
+              "quantity": 0.99,
+              "unit_price": 0.99,
+              "amount": 0.99,
+              "currency": 0.99,
+              "payment_term": 0.99
+            }
+          }
+        ],
+        "totals": [
+          {
+            "kind": "total",
+            "amount": 99.0,
+            "currency": "USD"
+          }
+        ],
+        "direction_statement": null,
+        "field_confidence": {
+          "document_type": 0.99,
+          "reference_no": 0.99,
+          "document_date": 0.99,
+          "issuer": 0.99,
+          "recipient": 0.99,
+          "bl_no": 0.5,
+          "container_no": 0.5
+        }
+      },
+      "expected_records": [
+        {
+          "document_type": "Debit Note",
+          "reference_no": "DN-2026-2008",
+          "document_date": "2026-09-29",
+          "issuer": "Destination Agent",
+          "recipient": "Origin Agent",
+          "original_charge_name": "H/D Fee",
+          "charge_item": "Handling Charge",
+          "amount": 40.0,
+          "currency": "USD",
+          "payment_term": "PP",
+          "posting_type": "AP",
+          "operation": "PENDING_REVIEW",
+          "match_level": "NONE",
+          "review_reason": "SUM_MISMATCH",
+          "changed_fields_contains": []
+        }
+      ]
+    },
+    {
+      "id": "entity_unresolved",
+      "file": "files/entity_unresolved.xlsx",
+      "bills": [],
+      "match_keywords": [
+        "H/D Fee",
+        "DN-2026-2009"
+      ],
+      "ocr": null,
+      "extraction": {
+        "extraction_id": null,
+        "document_type": "DEBIT NOTE",
+        "reference_no": "DN-2026-2009",
+        "document_date": "2026-09-29",
+        "shipment_info": {
+          "bl_no": null,
+          "booking_no": null,
+          "container_no": null,
+          "vessel_voyage": null,
+          "pol": null,
+          "pod": null
+        },
+        "issuer": "Unknown Co.",
+        "recipient": "Other Co.",
+        "charges": [
+          {
+            "line_id": null,
+            "original_charge_name": "H/D Fee",
+            "quantity": 2,
+            "unit_price": 20.0,
+            "amount": 40.0,
+            "currency": "USD",
+            "payment_term": "PREPAID",
+            "snippet": "H/D Fee 2 20 40 USD PREPAID",
+            "locator": null,
+            "confidence": {
+              "original_charge_name": 0.99,
+              "quantity": 0.99,
+              "unit_price": 0.99,
+              "amount": 0.99,
+              "currency": 0.99,
+              "payment_term": 0.99
+            }
+          }
+        ],
+        "totals": [
+          {
+            "kind": "total",
+            "amount": 40.0,
+            "currency": "USD"
+          }
+        ],
+        "direction_statement": null,
+        "field_confidence": {
+          "document_type": 0.99,
+          "reference_no": 0.99,
+          "document_date": 0.99,
+          "issuer": 0.99,
+          "recipient": 0.99,
+          "bl_no": 0.5,
+          "container_no": 0.5
+        }
+      },
+      "expected_records": [
+        {
+          "document_type": "Debit Note",
+          "reference_no": "DN-2026-2009",
+          "document_date": "2026-09-29",
+          "issuer": "Unknown Co.",
+          "recipient": "Other Co.",
+          "original_charge_name": "H/D Fee",
+          "charge_item": "Handling Charge",
+          "amount": 40.0,
+          "currency": "USD",
+          "payment_term": "PP",
+          "posting_type": null,
+          "operation": "PENDING_REVIEW",
+          "match_level": "NONE",
+          "review_reason": "ENTITY_UNRESOLVED",
+          "changed_fields_contains": []
+        }
+      ]
+    },
+    {
+      "id": "data_conflict",
+      "file": "files/data_conflict.xlsx",
+      "bills": [
+        "bills/BILL-2010.json"
+      ],
+      "match_keywords": [
+        "H/D Fee",
+        "DN-2026-2010"
+      ],
+      "ocr": null,
+      "extraction": {
+        "extraction_id": null,
+        "document_type": "DEBIT NOTE",
+        "reference_no": "DN-2026-2010",
+        "document_date": "2026-09-30",
+        "shipment_info": {
+          "bl_no": null,
+          "booking_no": null,
+          "container_no": null,
+          "vessel_voyage": null,
+          "pol": null,
+          "pod": null
+        },
+        "issuer": "Origin Agent",
+        "recipient": "Another Co.",
+        "charges": [
+          {
+            "line_id": null,
+            "original_charge_name": "H/D Fee",
+            "quantity": 2,
+            "unit_price": 20.0,
+            "amount": 40.0,
+            "currency": "USD",
+            "payment_term": "PREPAID",
+            "snippet": "H/D Fee 2 20 40 USD PREPAID",
+            "locator": null,
+            "confidence": {
+              "original_charge_name": 0.99,
+              "quantity": 0.99,
+              "unit_price": 0.99,
+              "amount": 0.99,
+              "currency": 0.99,
+              "payment_term": 0.99
+            }
+          }
+        ],
+        "totals": [
+          {
+            "kind": "total",
+            "amount": 40.0,
+            "currency": "USD"
+          }
+        ],
+        "direction_statement": null,
+        "field_confidence": {
+          "document_type": 0.99,
+          "reference_no": 0.99,
+          "document_date": 0.99,
+          "issuer": 0.99,
+          "recipient": 0.99,
+          "bl_no": 0.5,
+          "container_no": 0.5
+        }
+      },
+      "expected_records": [
+        {
+          "document_type": "Debit Note",
+          "reference_no": "DN-2026-2010",
+          "document_date": "2026-09-30",
+          "issuer": "Origin Agent",
+          "recipient": "Another Co.",
+          "original_charge_name": "H/D Fee",
+          "charge_item": "Handling Charge",
+          "amount": 40.0,
+          "currency": "USD",
+          "payment_term": "PP",
+          "posting_type": "AR",
+          "operation": "PENDING_REVIEW",
+          "match_level": "L1",
+          "review_reason": "DATA_CONFLICT",
+          "changed_fields_contains": []
+        }
+      ]
+    },
+    {
+      "id": "ambiguous_match",
+      "file": "files/ambiguous_match.xlsx",
+      "bills": [
+        "bills/BILL-2011-1.json",
+        "bills/BILL-2011-2.json"
+      ],
+      "match_keywords": [
+        "H/D Fee",
+        "DN-2026-2011"
+      ],
+      "ocr": null,
+      "extraction": {
+        "extraction_id": null,
+        "document_type": "DEBIT NOTE",
+        "reference_no": "DN-2026-2011",
+        "document_date": "2026-10-01",
+        "shipment_info": {
+          "bl_no": null,
+          "booking_no": null,
+          "container_no": null,
+          "vessel_voyage": null,
+          "pol": null,
+          "pod": null
+        },
+        "issuer": "Destination Agent",
+        "recipient": "Origin Agent",
+        "charges": [
+          {
+            "line_id": null,
+            "original_charge_name": "H/D Fee",
+            "quantity": 2,
+            "unit_price": 20.0,
+            "amount": 40.0,
+            "currency": "USD",
+            "payment_term": "PREPAID",
+            "snippet": "H/D Fee 2 20 40 USD PREPAID",
+            "locator": null,
+            "confidence": {
+              "original_charge_name": 0.99,
+              "quantity": 0.99,
+              "unit_price": 0.99,
+              "amount": 0.99,
+              "currency": 0.99,
+              "payment_term": 0.99
+            }
+          }
+        ],
+        "totals": [
+          {
+            "kind": "total",
+            "amount": 40.0,
+            "currency": "USD"
+          }
+        ],
+        "direction_statement": null,
+        "field_confidence": {
+          "document_type": 0.99,
+          "reference_no": 0.99,
+          "document_date": 0.99,
+          "issuer": 0.99,
+          "recipient": 0.99,
+          "bl_no": 0.5,
+          "container_no": 0.5
+        }
+      },
+      "expected_records": [
+        {
+          "document_type": "Debit Note",
+          "reference_no": "DN-2026-2011",
+          "document_date": "2026-10-01",
+          "issuer": "Destination Agent",
+          "recipient": "Origin Agent",
+          "original_charge_name": "H/D Fee",
+          "charge_item": "Handling Charge",
+          "amount": 40.0,
+          "currency": "USD",
+          "payment_term": "PP",
+          "posting_type": "AP",
+          "operation": "PENDING_REVIEW",
+          "match_level": "L1",
+          "review_reason": "MATCH_AMBIGUOUS",
+          "changed_fields_contains": []
+        }
+      ]
+    }
+  ]
+}

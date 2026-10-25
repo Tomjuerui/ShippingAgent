@@ -1,0 +1,33 @@
+{
+  "bill_id": "BILL-2003",
+  "version": 1,
+  "document_info": {
+    "document_type": "Debit Note",
+    "reference_no": "DN-2026-2003",
+    "document_date": "2026-09-25"
+  },
+  "shipment_info": {
+    "bl_no": "OOLU4055331281",
+    "booking_no": "BK-2026-889",
+    "container_no": "TIIU8975975"
+  },
+  "transaction_party": {
+    "issuer": "Destination Agent",
+    "recipient": "Origin Agent"
+  },
+  "charges": [
+    {
+      "charge_item": "Terminal Handling Charge",
+      "original_charge_name": "THC",
+      "quantity": 1,
+      "unit_price": 90.0,
+      "amount": 90.0,
+      "currency": "USD",
+      "payment_term": "CC"
+    }
+  ],
+  "financial_attributes": {
+    "accounting_entity": "Origin Agent",
+    "posting_type": "AP"
+  }
+}

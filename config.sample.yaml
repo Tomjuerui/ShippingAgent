@@ -1,0 +1,94 @@
+# 样例演示配置：记账主体设为样例 Debit Note 的签发方（湃乐多 / Pilot Aiship）。
+# 用法：SBA_CONFIG=config.sample.yaml python -m app.server
+#       python -m app.cli samples/original --config config.sample.yaml
+# 生产环境请使用 config.yaml 并填写真实记账主体与别名。
+project:
+  version: "1.0.0"
+  prompt_version: "v1"
+
+accounting_entity:
+  name: "湃乐多（上海）航运科技有限公司"
+  aliases: ["Pilot Aiship Tech co., Ltd.", "湃乐多（上海）航运科技有限公司", "Pilot Aiship"]
+
+llm:
+  # local_proxy | deepseek_official | openai（LLM_PROFILE 可覆盖）
+  profile: "local_proxy"
+  profiles:
+    local_proxy:
+      base_url: "http://127.0.0.1:8788/v1"
+      model: "deepseek-v4.1-flash"
+      api_key_env: "LLM_API_KEY"
+    deepseek_official:
+      base_url: "https://api.deepseek.com/v1"
+      model: "deepseek-chat"
+      api_key_env: "DEEPSEEK_API_KEY"
+    openai:
+      base_url: "https://api.openai.com/v1"
+      model: "gpt-4o-mini"
+      api_key_env: "OPENAI_API_KEY"
+  api_key_env: "LLM_API_KEY"
+  temperature: 0
+  timeout_seconds: 120
+  max_retries: 2
+  # function_calling | json_mode | auto
+  structured_output: "auto"
+  cache_enabled: true
+  cache_dir: ".cache/llm"
+
+ocr:
+  url: "${OCR_URL:http://36.103.199.11:5002/process}"
+  task: "orderChange"
+  # auto | s3 | proxy | passthrough | temp_host
+  exposer: "${OCR_EXPOSER:auto}"
+  proxy_base_url: "${FILE_PROXY_BASE_URL:}"
+  proxy_token_ttl_minutes: 30
+  object_storage:
+    endpoint: "${OSS_ENDPOINT:}"
+    bucket: "${OSS_BUCKET:}"
+    access_key_id_env: "OSS_AK"
+    secret_key_env: "OSS_SK"
+    region: "${OSS_REGION:}"
+    ttl_minutes: 30
+  temp_host_enabled: false
+  temp_host_url: "https://transfer.sh"
+  retries: 3
+  connect_timeout: 10
+  read_timeout: 300
+  min_text_chars: 40
+  record_dir: "tests/fixtures/vcr"
+
+matching:
+  l4_enabled: true
+  l4_to_review: true
+  l4_allow_missing_container: true
+  amount_tolerance: 0.01
+  date_window_days: 3
+  derived_keys_enabled: true
+  fuzzy_ratio: 90
+
+arap:
+  policy: "reversed_posting"
+  # 方向语句佐证词典；命中且与矩阵结论矛盾时送复核
+  direction_ar_keywords: ["collect from", "bill to", "invoice to", "应收", "向我方收取"]
+  direction_ap_keywords: ["we will pay", "we pay", "debit us", "应付", "我方支付"]
+
+thresholds:
+  review_below: 0.70
+  low_confidence_below: 0.85
+
+paths:
+  output_dir: "${SBA_OUTPUT_DIR:output}"
+  data_dir: "${SBA_DATA_DIR:data}"
+  cache_dir: ".cache"
+
+web:
+  host: "127.0.0.1"
+  port: 8000
+  upload_limit_mb: 20
+  max_files_per_batch: 20
+  concurrency: 3
+
+pipeline:
+  max_eml_depth: 3
+  max_text_chars_per_chunk: 12000
+  enable_sqlite_checkpoint: true
