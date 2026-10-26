@@ -16,10 +16,78 @@ from app.extraction.schemas import SourceInfo, UIRBlock, UIRDocument, UIRTable
 from app.storage.file_exposer import ExposeError, FileExposer
 
 _TEXT_KEYS = ("text", "content", "raw_text", "ocr_text", "markdown", "md", "plain_text", "transcription")
-_LINE_CONTAINERS = ("lines", "blocks", "paragraphs", "items", "results", "result", "data")
+_LINE_CONTAINERS = ("lines", "blocks", "paragraphs", "items", "results", "result", "data", "list")
 _TABLE_CONTAINERS = ("tables", "table")
 _BBOX_KEYS = ("bbox", "box", "position", "coordinates", "bounding_box")
 _CONF_KEYS = ("confidence", "score", "probability", "avg_confidence")
+
+# 部分 OCR 服务返回的不是行文本，而是领域字段对象（提单号/费用清单/箱号等）。
+# 这些键同时出现 ≥2 个时按领域对象渲染为可读行，供下游 LLM 提取。
+_DOMAIN_OCR_KEYS = {
+    "mblNumber", "chargeList", "ctrList", "hold", "fileType", "shipper", "consignee",
+    "invoiceNumber", "customsClearance", "customsReleaseStatus", "usCustomsStatus",
+    "firmsCode", "cyFirmsCode", "itNumber", "itDate", "itLocation", "pickupLocation",
+    "inlandArrivalDate", "loadedOnRailDate", "revisedEtaOfDestination", "isDetention",
+    "isDemurrage", "suspicious",
+}
+_DOMAIN_LABELS = {
+    "fileType": "Document Type",
+    "invoiceNumber": "Invoice No.",
+    "mblNumber": "MBL No.",
+    "shipper": "Shipper",
+    "consignee": "Consignee",
+    "customsClearance": "Customs Clearance",
+    "customsReleaseStatus": "Customs Release Status",
+    "usCustomsStatus": "US Customs Status",
+    "firmsCode": "FIRMS Code",
+    "cyFirmsCode": "CY FIRMS Code",
+    "itNumber": "IT No.",
+    "itDate": "IT Date",
+    "itLocation": "IT Location",
+    "pickupLocation": "Pickup Location",
+    "inlandArrivalDate": "Inland Arrival Date",
+    "loadedOnRailDate": "Loaded On Rail Date",
+    "revisedEtaOfDestination": "Revised ETA of Destination",
+    "remark": "Remark",
+}
+
+
+def _scalar(value: Any) -> str | None:
+    if isinstance(value, bool) or value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return str(value)
+    if isinstance(value, str):
+        text = value.strip()
+        return text or None
+    return None
+
+
+def _domain_item_lines(node: dict) -> list[str]:
+    lines: list[str] = []
+    for key, label in _DOMAIN_LABELS.items():
+        text = _scalar(node.get(key))
+        if text:
+            lines.append(f"{label}: {text}")
+    hold = node.get("hold")
+    if isinstance(hold, dict):
+        parts = [f"{k}: {v}" for k, v in hold.items() if _scalar(v)]
+        if parts:
+            lines.append("Hold | " + " | ".join(parts))
+    for list_key, prefix in (("chargeList", "Charge"), ("ctrList", "Container"), ("other", "Other")):
+        values = node.get(list_key)
+        if not isinstance(values, list):
+            continue
+        for item in values:
+            if isinstance(item, dict):
+                parts = [f"{k}: {v}" for k, v in item.items() if _scalar(v)]
+                if parts:
+                    lines.append(f"{prefix} | " + " | ".join(parts))
+            else:
+                text = _scalar(item)
+                if text:
+                    lines.append(f"{prefix} | {text}")
+    return lines
 
 
 class OCRUnavailable(RuntimeError):
@@ -209,6 +277,12 @@ def parse_ocr_payload(payload: Any) -> OCRResult:
                     walk(item, page, depth + 1)
             return
         if not isinstance(node, dict):
+            return
+
+        # 领域字段对象（mblNumber/chargeList/ctrList 等）：渲染为可读行，不再深入递归
+        if len(_DOMAIN_OCR_KEYS.intersection(node.keys())) >= 2:
+            for text in _domain_item_lines(node):
+                add_line(text, page)
             return
 
         confidence = next(

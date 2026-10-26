@@ -165,14 +165,22 @@ class FileExposer:
                     "callBack": "",
                     "taskType": "",
                 },
-                timeout=(10, 60),
+                # 探测覆盖"外发+OCR 全链路"，耗时可能远超普通请求，复用配置的超时
+                timeout=(self.settings.ocr.connect_timeout, self.settings.ocr.read_timeout),
             )
             if response.status_code != 200:
                 return False, f"OCR HTTP {response.status_code}"
             data = response.json()
             if isinstance(data, dict) and data.get("success") is False:
                 return False, f"OCR 返回失败：{data.get('message') or data.get('error_code')}"
-            return True, "HTTP 200"
+            # HTTP 200 + success 不代表链路可用：部分服务在无法抓取文件时
+            # 也返回"成功 + 空内容"。必须确认探测文件确实被处理出内容。
+            from app.agent.nodes.ocr_client import parse_ocr_payload  # 延迟导入避免环依赖
+
+            result = parse_ocr_payload(data)
+            if not (result.text.strip() or result.lines or result.tables):
+                return False, "OCR 返回 200 但内容为空（服务可能无法抓取该 URL），探测不通过"
+            return True, "HTTP 200 且内容非空"
         except Exception as exc:
             return False, str(exc)
         finally:
@@ -225,7 +233,14 @@ class FileExposer:
             aws_access_key_id=cfg.access_key(),
             aws_secret_access_key=cfg.secret_key(),
             region_name=cfg.region or None,
-            config=Config(signature_version="s3v4"),
+            # 阿里云 OSS / 腾讯云 COS 新桶已禁用 path-style，必须 virtual-hosted 寻址；
+            # botocore>=1.36 默认 STREAMING-UNSIGNED-PAYLOAD-TRAILER 上传，OSS 不支持，需改为按需校验
+            config=Config(
+                signature_version="s3v4",
+                s3={"addressing_style": "virtual"},
+                request_checksum_calculation="when_required",
+                response_checksum_validation="when_required",
+            ),
         )
         key = f"shipping-billing/{uuid.uuid4().hex}/{path.name}"
         warnings: list[str] = []
