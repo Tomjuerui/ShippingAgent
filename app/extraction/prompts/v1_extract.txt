@@ -11,13 +11,14 @@
 2. document_type 原样抄写单据标题（如 DEBIT NOTE、CREDIT NOTE、INVOICE、STATEMENT），不要自行转换成 AR/AP。
 3. reference_no / document_date / bl_no / booking_no / container_no 原样抄写；箱号保留原始字符。
 4. issuer / recipient 是单据上的签发方与接收方公司名（不是邮箱地址）。
-5. charges[].original_charge_name 必须原样抄写费用名称的写法，不做同义词替换。
+5. charges[].original_charge_name 必须原样抄写费用名称**完整写法**，不做同义词替换，也不得截断：包括前缀序号、撇号和后缀修饰（如 "4 ADD'L DETENTION FREE TIME CHARGE"、"On Carriage Additional - US Em" 必须整段抄录）。
 6. amount 使用文本中该行的金额（数字类型）；若打印为括号负数，输出负数字符串在原文本、数值为负数；quantity / unit_price 没有就填 null。
-7. currency / payment_term 原样抄写（如 "US$"、"USD"、"美元"、"PREPAID"、"CC"），不要标准化。
+7. currency / payment_term 原样抄写（如 "US$"、"USD"、"美元"、"PREPAID"、"CC"），不要标准化。费用表中独立的 P/C、PP/CC、Prepaid/Collect 列即付款方式：P = PREPAID，C = COLLECT，只抄该列的字母/词（如 "C"），不要拼接其他列内容。
 8. totals 按币种分别输出："kind" 取 subtotal / tax / total，"amount" 与 "currency" 原样。
 9. direction_statement 抄录文本中明确的收费方向语句（如 "charge to shipper prepaid"），没有则 null。
 10. snippet 必须是该费用行在输入文本中的**逐字片段**（不要改写）；locator 若文本中有页码/表名可填 {"page": 1}，否则 null。
 11. field_confidence 为 0–1 的字段级置信度；charges[].confidence 为 {original_charge_name, quantity, unit_price, amount, currency, payment_term} 的行级置信度。OCR 模糊或缺失时应降低。
+12. 若单据中出现费用表或 TOTAL AMOUNT / GRAND TOTAL / TOTAL CHARGES 等金额行，则该单据至少存在一条 charge：必须逐行抄录每一笔费用，禁止返回空 charges 数组。仅当全文确实没有任何费用或金额行时才允许 charges 为空。
 
 # 只输出以下 JSON 结构（不要 Markdown 代码围栏，不要解释）
 {

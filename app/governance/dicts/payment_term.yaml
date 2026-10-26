@@ -1,18 +1,20 @@
 # 付款方式别名（PRD 附录 A.3）
-version: "2026.10.24"
+# 2026.10.25：新增单字母 P/C 别名（费用表 P/C 列），版本号变更使 LLM 响应缓存失效
+version: "2026.10.25"
 canonical:
   PP:
     - PP
     - P/P
+    - P
     - PREPAID
     - PRE-PAID
-    - FREIGHT PREPAID
     - FREIGHT PREPAID
     - 预付
     - 预付运费
   CC:
     - CC
     - C/C
+    - C
     - COLLECT
     - FREIGHT COLLECT
     - 到付
