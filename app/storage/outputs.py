@@ -58,6 +58,7 @@ def write_outputs(batch: BatchOutput, output_dir: Path) -> dict[str, Path]:
                 "summary": payload["summary"],
                 "files": payload["files"],
                 "meta": payload["meta"],
+                "warnings": payload.get("warnings", []),
             },
             ensure_ascii=False,
             indent=2,

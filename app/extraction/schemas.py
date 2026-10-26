@@ -499,6 +499,7 @@ class BatchOutput(BaseModel):
     files: list[FileResultOut] = Field(default_factory=list)
     records: list[BillRecord] = Field(default_factory=list)
     meta: BatchMeta = Field(default_factory=BatchMeta)
+    warnings: list[str] = Field(default_factory=list)
 
 
 class FileProgress(BaseModel):

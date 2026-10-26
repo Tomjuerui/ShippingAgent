@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import mimetypes
 import os
@@ -306,9 +307,17 @@ def create_app(
                     await _save_upload(upload, upload_dir, settings.web.upload_limit_mb)
                 )
             for upload in bill_files:
-                bill_paths.append(
-                    await _save_upload(upload, bill_dir, settings.web.upload_limit_mb)
-                )
+                saved = await _save_upload(upload, bill_dir, settings.web.upload_limit_mb)
+                # 上传期语法校验（缺陷 P2-9）：非法 JSON 直接拒绝，
+                # 避免进入流水线后被静默忽略、UPDATE 退化为 CREATE。
+                try:
+                    json.loads(saved.read_text(encoding="utf-8"))
+                except Exception as exc:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"已有账单 {upload.filename} 不是合法 JSON：{exc}",
+                    )
+                bill_paths.append(saved)
         except Exception:
             shutil.rmtree(upload_dir, ignore_errors=True)
             shutil.rmtree(bill_dir, ignore_errors=True)
