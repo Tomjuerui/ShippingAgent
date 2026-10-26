@@ -37,7 +37,7 @@
 | AR/AP | 符号-类型正交矩阵；`CN × 接收方 × 负数 → AR` 双重反转陷阱有专门回归测试 |
 | 幂等与防重 | 文件 SHA-256 + 历史账本；重复提交输出 NOCHANGE；同一批次 ID + `--deterministic` 可做到 byte-level 一致 |
 | 输出 | 每费用一行、双字段费用名（原始 + 标准）、完整审计链、JSON Schema 校验后落盘 |
-| 质量工程 | 146 个离线测试、11 个 golden 场景、9 项指标门禁、CI、失败注入、OCR/LLM 录制回放 |
+| 质量工程 | 161 个离线测试、11 个 golden 场景、9 项指标门禁、CI、失败注入、OCR/LLM 录制回放 |
 
 ---
 
@@ -372,7 +372,7 @@ pytest -q
 - 集成：多格式批、EML 附件根哈希、UPDATE、重复提交 NOCHANGE、idempotency、LLM/OCR 不可用、坏文件隔离、共享账单行歧义；
 - API：上传→状态→筛选→导出→历史→静态页→404/400。
 
-当前结果：**146 passed**。
+当前结果：**161 passed**。
 
 ### 8.2 Golden 评测（fixtures 离线）
 
