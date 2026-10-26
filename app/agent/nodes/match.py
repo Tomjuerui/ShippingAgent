@@ -234,6 +234,7 @@ class MergedValues:
     change_info: ChangeInfoOut | None = None
     conflict: bool = False
     conflict_notes: list[str] = field(default_factory=list)
+    warning_notes: list[str] = field(default_factory=list)
 
 
 def _norm_text(value) -> str:
@@ -345,6 +346,26 @@ def merge_update(
             merged[field_name] = old_value
 
     conflicts = _detect_conflicts(doc, charge, bill)
+    warning_notes: list[str] = []
+    # 勾稽一致性提示（缺陷 P3-12）：金额变更后与继承的数量×单价不一致时明确标记，
+    # 不静默改写未被输入明确要求修改的字段（要求.md 处理要求 6）。
+    merged_quantity = merged.get("charge_details.quantity")
+    merged_unit_price = merged.get("charge_details.unit_price")
+    merged_amount = merged.get("charge_details.amount")
+    if (
+        merged_quantity is not None
+        and merged_unit_price is not None
+        and merged_amount is not None
+    ):
+        try:
+            expected = round(float(merged_quantity) * float(merged_unit_price), 2)
+            if abs(expected - float(merged_amount)) > 0.05:
+                warning_notes.append(
+                    f"金额 {merged_amount} 与数量 {merged_quantity} × 单价 {merged_unit_price}"
+                    f"（= {expected}）不一致：输入未明确修改的字段按原账单继承，请人工复核勾稽关系"
+                )
+        except (TypeError, ValueError):
+            pass
     values = MergedValues(
         document_info=DocumentInfoOut(
             document_type=merged["document_info.document_type"],
@@ -375,6 +396,7 @@ def merge_update(
         change_info=ChangeInfoOut(changed_fields=changed, inherited_fields=inherited),
         conflict=bool(conflicts),
         conflict_notes=conflicts,
+        warning_notes=warning_notes,
     )
     return values
 
@@ -418,30 +440,31 @@ def decide_operation(
 
     bill = match.bill
     merged = merge_update(doc, charge, bill)
+    notes = notes + list(merged.warning_notes)
     if merged.conflict:
         return (
             Operation.PENDING_REVIEW,
             merged,
             "DATA_CONFLICT",
-            merged.conflict_notes,
+            notes + merged.conflict_notes,
         )
     if settings.matching.l4_enabled and settings.matching.l4_to_review and match.level == MatchLevel.L4:
         return (
             Operation.PENDING_REVIEW,
             merged,
             "OTHER",
-            ["L4 弱键命中（箱号+双方+日期+金额），按配置送人工复核"],
+            notes + ["L4 弱键命中（箱号+双方+日期+金额），按配置送人工复核"],
         )
     if merged.change_info and merged.change_info.changed_fields:
         return (
             Operation.UPDATE,
             merged,
             None,
-            [f"匹配到已有账单 {bill.bill_id}（{match.level.value}），存在字段差异，判定为更新"],
+            notes + [f"匹配到已有账单 {bill.bill_id}（{match.level.value}），存在字段差异，判定为更新"],
         )
     return (
         Operation.NOCHANGE,
         merged,
         None,
-        [f"匹配到已有账单 {bill.bill_id}（{match.level.value}），所有字段无差异"],
+        notes + [f"匹配到已有账单 {bill.bill_id}（{match.level.value}），所有字段无差异"],
     )
