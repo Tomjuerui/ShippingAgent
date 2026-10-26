@@ -22,3 +22,9 @@ samples/original/*
 
 # 本地评测产物，非源码
 eval/reports/eval-*
+
+# 多实例演示/截图时的隔离运行产物（含上传原件与批次输出），不入库
+output_web/
+output_demo/
+data_web/
+data_demo/

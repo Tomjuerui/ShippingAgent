@@ -4,20 +4,26 @@
 # 生产环境请使用 config.yaml 并填写真实记账主体与别名。
 project:
   version: "1.0.0"
-  prompt_version: "v1"
+  prompt_version: "v1.1"
 
 accounting_entity:
   name: "湃乐多（上海）航运科技有限公司"
   aliases: ["Pilot Aiship Tech co., Ltd.", "湃乐多（上海）航运科技有限公司", "Pilot Aiship"]
 
 llm:
-  # local_proxy | deepseek_official | openai（LLM_PROFILE 可覆盖）
+  # local_proxy | deepseek_official | openai | fandai（LLM_PROFILE 可覆盖）
   profile: "local_proxy"
   profiles:
     local_proxy:
       base_url: "http://127.0.0.1:8788/v1"
       model: "deepseek-v4.1-flash"
       api_key_env: "LLM_API_KEY"
+    # fandai.kunyou.asia 中转站（OpenRouter 风格聚合）；实测可用模型见 .env 注释
+    # 注意：普通模型并发上限 4，sh: 共享池模型并发上限 2，超过返回 429
+    fandai:
+      base_url: "https://fandai.kunyou.asia/v1"
+      model: "nemotron-ultra"
+      api_key_env: "FANDAI_API_KEY"
     deepseek_official:
       base_url: "https://api.deepseek.com/v1"
       model: "deepseek-chat"
@@ -29,6 +35,7 @@ llm:
   api_key_env: "LLM_API_KEY"
   temperature: 0
   timeout_seconds: 120
+  unavailable_retry_seconds: 20
   max_retries: 2
   # function_calling | json_mode | auto
   structured_output: "auto"
