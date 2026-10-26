@@ -1,8 +1,28 @@
-# 航运智能账单助手智能体（Shipping Billing Agent）
+# 航运智能账单助手（Shipping Billing Agent）
+
+> 多格式文档解析 · 增量对账 · 可审计 JSON —— 面向财务场景的航运账单智能体
 
 把散落在 **EML / PDF / 图片 / Excel / Word** 里的航运费用，自动解析为标准 JSON，匹配已有账单并只做增量更新；每一步都留下可审计的来源、快照与推理依据。
 
 技术栈：**Python 3.11+、LangChain / LangGraph、FastAPI、Pydantic v2**。前端为原生 HTML/CSS/JS，无构建工具链，克隆即运行。
+
+> ⚠️ **运行前必须配置两类密钥**：① **LLM API Key**（语义提取的唯一入口，`LLM_API_KEY` 或 profile 专属变量）；② **OSS 对象存储 AK/SK**（扫描件/图片送 OCR 前的文件外发通道，`OSS_AK` / `OSS_SK`）。两者都只走 `.env` 环境变量，**严禁提交进仓库**。详见 [3.2 配置凭证](#32-第二步配置凭证必须llm-api-key--oss)。
+
+## 目录
+
+- [1. 能力一览](#1-能力一览)
+- [2. 架构](#2-架构)
+- [3. 启动教程（图文）](#3-启动教程图文)
+- [4. Web 界面走读（截图演示）](#4-web-界面走读截图演示)
+- [5. 配置说明](#5-配置说明)
+- [6. REST API](#6-rest-api)
+- [7. 数据契约](#7-数据契约)
+- [8. Harness 质量工程](#8-harness-质量工程)
+- [9. 目录结构](#9-目录结构)
+- [10. 故障排查](#10-故障排查)
+- [11. 已知边界](#11-已知边界如实说明)
+- [12. 安全与合规](#12-安全与合规)
+- [13. 验收与文档](#13-验收与文档)
 
 ---
 
@@ -67,12 +87,21 @@ output（batch.json / records.json / summary.json + status.json）
 
 ---
 
-## 3. 快速开始
+## 3. 启动教程（图文）
 
-### 3.1 环境
+### 3.0 准备清单
+
+| 必须项 | 说明 |
+| --- | --- |
+| Python 3.11+ | 依赖 `langchain` / `langgraph` / `fastapi` / `pydantic v2` |
+| **LLM API Key** | 语义提取唯一入口；`local_proxy` / `deepseek_official` / `openai` 或自建中转 profile 任选 |
+| **OSS（S3 兼容对象存储）** | 扫描 PDF / 图片送 OCR 前的文件外发通道；没有 OSS 时见 [5.2 替代方案](#52-ocr-文件外发策略链重点) |
+| 样例材料 | 仓库自带：`samples/generated/DN-2026-1001.xlsx`、`samples/bills/BILL-DEMO-1001.json` |
+
+### 3.1 第一步：安装依赖
 
 ```bash
-cd shipping-billing-agent
+git clone <repo-url> && cd shipping-billing-agent
 python -m venv .venv
 # Windows
 .venv\Scripts\activate
@@ -80,50 +109,62 @@ python -m venv .venv
 # source .venv/bin/activate
 
 pip install -r requirements.txt
-cp .env.example .env     # Windows: copy .env.example .env
-cp config.sample.yaml config.yaml   # config.yaml 属本地运行配置，不入库；样例可直接用
+cp .env.example .env          # Windows: copy .env.example .env
+cp config.sample.yaml config.yaml   # 可选：config.yaml 属本地运行配置，不入库
 ```
 
-测试不需要 `config.yaml`：`conftest.py` 会把 `SBA_CONFIG` 指向入库的 `tests/config.test.yaml`，
-本地与 CI 因此使用同一份配置。手动跑评测或 CLI 时若想用同一份，可 `export SBA_CONFIG=tests/config.test.yaml`。
+> 离线跑测试不需要任何密钥：`conftest.py` 会把 `SBA_CONFIG` 指向入库的 `tests/config.test.yaml`，本地与 CI 用同一份配置。
 
-### 3.2 配置密钥（不要提交 .env）
+### 3.2 第二步：配置凭证（必须：LLM API Key + OSS）
 
-编辑 `.env`：
+编辑 `.env`（已被 `.gitignore` 排除，**严禁提交真实密钥**）：
 
 ```bash
-LLM_PROFILE=local_proxy
-LLM_API_KEY=你的密钥
+# ---- ① LLM API Key：语义提取的唯一入口，必须配置 ----
+LLM_PROFILE=deepseek_official        # local_proxy | deepseek_official | openai | 自建 profile
+LLM_API_KEY=sk-xxxx                  # 全局优先；profile 也可指定自己的变量（如 DEEPSEEK_API_KEY）
+# LLM_BASE_URL=                      # 可选：覆盖 profile 地址
+# LLM_MODEL=                         # 可选：覆盖 profile 模型
 
-# 可选：覆盖地址/模型
-# LLM_BASE_URL=http://127.0.0.1:8788/v1
-# LLM_MODEL=deepseek-v4.1-flash
-
-# OCR 外发（无公网 IP 时至少配置一种，详见第 4.2 节）
-OCR_EXPOSER=auto
-# OSS_ENDPOINT=...
-# OSS_BUCKET=...
-# OSS_AK=...
-# OSS_SK=...
+# ---- ② OSS 文件外发：扫描 PDF / 图片送 OCR 前必须先变成公网可回访的预签名直链 ----
+OCR_EXPOSER=auto                     # auto 会按 S3 → 文件代理 自动探测
+OSS_ENDPOINT=https://oss-cn-beijing.aliyuncs.com   # S3 兼容端点（阿里云 OSS / 腾讯云 COS / MinIO）
+OSS_BUCKET=your-private-bucket                     # 必须私有桶
+OSS_REGION=cn-beijing
+OSS_AK=你的AccessKeyId               # 真正的密钥只放环境变量，配置文件里只有变量名
+OSS_SK=你的AccessKeySecret
 ```
 
-### 3.3 启动 Web
+两项缺一不可的原因：
+
+- **不配 LLM Key** → `extract` 节点（`app/extraction/llm_client.py`）无法调用，所有非结构化提取失败，批次直接不可用；
+- **不配 OSS** → OCR 服务在公网，回访不到你本机的 `127.0.0.1/192.168.x.x`，扫描件与图片会被标记 `OCR_UNAVAILABLE` 送复核（文本型 PDF / Excel / Word / EML 不受影响）。没有 OSS 时可设 `FILE_PROXY_BASE_URL` 走自托管文件代理（B 级策略），见 [5.2](#52-ocr-文件外发策略链重点)。
+
+配完先自检（不跑批次即可定位密钥问题）：
 
 ```bash
+python -m app.tools.llm_selfcheck    # 真调 /models + 一次 chat completion
+python -m app.tools.ocr_selfcheck    # 真调 OCR 健康检查 + 外发策略探测（应显示 selected=s3）
+```
+
+### 3.3 第三步：启动 Web 服务
+
+```bash
+# 默认读 config.yaml（生产/自有主体）
 python -m app.server
-# 打开 http://127.0.0.1:8000
-```
 
-使用样例演示配置（记账主体设为样例单据签发方，便于看到 AR/AP 判定）：
-
-```bash
+# 演示推荐：SBA_CONFIG 指向样例配置，记账主体自动对齐样例单据，便于看到 AR/AP 判定
 # Windows PowerShell
 $env:SBA_CONFIG="config.sample.yaml"; python -m app.server
-# Git Bash / Linux
+# Git Bash / Linux / macOS
 SBA_CONFIG=config.sample.yaml python -m app.server
 ```
 
-### 3.4 CLI 批处理
+打开 **http://127.0.0.1:8000**。首页右上角与右侧「服务状态」卡会实时显示 LLM / API Key / OCR / 外发策略四项探活结果——**全绿即代表 3.2 的两类密钥都配置成功**：
+
+![首页：上传区与服务状态全绿](docs/images/01-home.png)
+
+### 3.4 第四步：CLI 批处理（可选）
 
 ```bash
 python -m app.cli samples/original
@@ -144,28 +185,48 @@ python -m app.cli samples/generated --bills samples/bills --json
 | `--llm-profile` | `local_proxy` / `deepseek_official` / `openai` |
 | `--config PATH` | 指定配置文件 |
 
-### 3.5 自检
+---
 
-```bash
-# 只评估配置，不发网络请求
-python -m app.tools.ocr_selfcheck --dry-run
-python -m app.tools.llm_selfcheck --dry-run
+## 4. Web 界面走读（截图演示）
 
-# 真调 OCR 健康检查 + 外发策略探测
-python -m app.tools.ocr_selfcheck
+以下截图来自真实运行：上传仓库自带样例 `DN-2026-1001.xlsx` + 已有账单 `BILL-DEMO-1001.json`，记账主体为样例配置中的「湃乐多（上海）航运科技有限公司」。
 
-# 真调 LLM /models 与一次 chat completion
-python -m app.tools.llm_selfcheck
-```
+### 4.1 选择文件
+
+拖拽或点选账单材料（EML/PDF/图片/Excel/Word，单文件 ≤20 MB、单批 ≤20 个，前端+服务端双重校验）；如有历史账单，放入「已有账单 JSON」区，系统会做 L1–L4 匹配并只输出增量更新。
+
+![已选择样例文件](docs/images/02-upload-pending.png)
+
+### 4.2 处理进度
+
+点「开始处理」后生成批次 ID，页面每 2 秒轮询 `/api/batches/{id}`：顶部进度条、新增/更新/无变化/待复核四个计数、逐文件的阶段状态（排队 / 解析 / OCR / 提取 / 判定 / 完成 / 失败 / 跳过）实时刷新。
+
+![处理中：EML 批次停在 解析/OCR 阶段](docs/images/03-progress-running.png)
+
+### 4.3 结果列表
+
+批次完成后自动切到「处理结果」：本例 1 条记录被判定为 **更新**——原始费用名 `H/D Fee` 映射为标准项 `Handling Charge`，金额 40.00 USD，AR/AP 判定 AP，置信度 0.95。支持按操作筛选、仅看低置信、下载整批 JSON。
+
+![结果列表：更新 1 条](docs/images/04-results.png)
+
+### 4.4 记录详情与审计链
+
+点击任意记录打开详情弹窗：左侧是单据信息、交易双方、运输信息、费用明细、财务属性、匹配信息（本例 L1 命中 `BILL-DEMO-1001`）、字段变更与完整处理依据；右侧是语法高亮的完整 JSON，可复制或单条下载。
+
+![记录详情弹窗](docs/images/05-record-detail.png)
+
+### 4.5 历史批次
+
+右侧「历史批次」读取 `output/` 目录，任意批次可回看点开复现；服务状态卡随时展示 LLM / OCR / 外发策略探活结果。
 
 ---
 
-## 4. 配置说明
+## 5. 配置说明
 
 主配置：`config.yaml`；样例演示配置：`config.sample.yaml`；环境变量可覆盖关键项。
 配置结构遵循《实现计划.md》§3.1。
 
-### 4.1 LLM 多端点
+### 5.1 LLM 多端点
 
 ```yaml
 llm:
@@ -182,7 +243,7 @@ llm:
 - 响应缓存位于 `.cache/llm/`，key = `prompt_version + model + base_url + 字典版本 + sha256(输入)`；
 - 温度固定 0。
 
-### 4.2 OCR 文件外发策略链（重点）
+### 5.2 OCR 文件外发策略链（重点）
 
 OCR 服务在公网，**本机 127.0.0.1 / 192.168.x.x 它访问不到**。系统按策略链外发：
 
@@ -197,7 +258,7 @@ OCR 服务在公网，**本机 127.0.0.1 / 192.168.x.x 它访问不到**。系�
 - 启动时可用 `python -m app.tools.ocr_selfcheck` 真调探测；`/api/health` 展示当前策略；
 - 生产建议：账单属财务敏感数据，使用自有账号私有桶，或部署到有公网 IP 的自有服务器走 B 级。
 
-### 4.3 记账主体与口径
+### 5.3 记账主体与口径
 
 ```yaml
 accounting_entity:
@@ -213,7 +274,7 @@ arap:
 - `same_account_offset`：Credit Note 不翻转科目，装配层将金额取负；
 - PP/CC 与正文收费方向语句仅作佐证，矛盾送复核。
 
-### 4.4 匹配与阈值
+### 5.4 匹配与阈值
 
 ```yaml
 matching:
@@ -231,21 +292,7 @@ thresholds:
 
 ---
 
-## 5. Web 使用
-
-三视图：
-
-1. **上传**：拖拽/选择多文件；可选上传已有账单 JSON；前端 + 服务端双重校验（格式、20 MB、单批 20 个）。
-2. **进度**：批次 ID、总进度、逐文件状态（排队 / 解析 / OCR / 提取 / 判定 / 完成 / 失败 / 跳过）、各 operation 计数；2 秒轮询。
-3. **结果**：
-   - 摘要卡片与 operation 筛选（全部 / 新增 / 更新 / 无变化 / 待复核）；
-   - “仅看低置信”开关；
-   - 记录表：记录 ID、操作、单据号、费用名称（原始 → 标准）、金额币种、AR/AP、置信度；
-   - 点击记录打开详情：结构化字段、字段变更、校验与修复、来源、原文快照、完整处理依据、语法高亮 JSON；
-   - 支持复制 JSON、单条下载、整批导出。
-4. 右侧历史批次可回看，服务状态卡展示 LLM / OCR / 外发策略。
-
-### REST API
+## 6. REST API
 
 | 端点 | 方法 | 说明 |
 | --- | --- | --- |
@@ -259,9 +306,9 @@ thresholds:
 
 ---
 
-## 6. 数据契约
+## 7. 数据契约
 
-### 6.1 已有账单输入（双 Schema 兼容）
+### 7.1 已有账单输入（双 Schema 兼容）
 
 - **扩展格式**（PRD 6.2）：含 `shipment_info` + `charges[]`；
 - **最小格式**（《要求.md》第五节）：扁平单费用记录，只有 `document_info` / `transaction_party` / `charge_details` / `financial_attributes` / `audit_trail`。
@@ -272,7 +319,7 @@ thresholds:
 - 扫描 `remarks` 与 `audit_trail` 文本挖掘编号；
 - 派生键标记 `derived: true`，只用于 L2–L4；批报告输出匹配键覆盖率。
 
-### 6.2 输出
+### 7.2 输出
 
 单条记录字段见 PRD 6.3；每费用项目一条，`charge_details` 同时包含：
 
@@ -306,9 +353,9 @@ output/<batch_id>/
 
 ---
 
-## 7. Harness 质量工程
+## 8. Harness 质量工程
 
-### 7.1 离线测试
+### 8.1 离线测试
 
 ```bash
 pytest -q
@@ -327,7 +374,7 @@ pytest -q
 
 当前结果：**146 passed**。
 
-### 7.2 Golden 评测（fixtures 离线）
+### 8.2 Golden 评测（fixtures 离线）
 
 ```bash
 python eval/make_fixtures.py       # 重新生成夹具（可选）
@@ -352,11 +399,11 @@ python eval/run_eval.py --fixtures
 
 报告写入 `eval/reports/`（JSON + Markdown）。黄金集故意包含 4 个对抗复核用例，因此整体 `review_rate` 只作信息展示，门禁使用 `unexpected_review_rate`。
 
-### 7.3 CI
+### 8.3 CI
 
 `.github/workflows/ci.yml`：安装依赖 → `pytest -q` → `python eval/run_eval.py --fixtures` → 两个 dry-run 自检。全流程无外部服务。
 
-### 7.4 确定性与追踪
+### 8.4 确定性与追踪
 
 - 相同输入 + 相同 batch-id + `--deterministic` → `batch.json` byte-level 一致（有集成测试）；
 - 所有 LLM/OCR 响应可按输入哈希缓存/录制，CI 回放；
@@ -364,7 +411,7 @@ python eval/run_eval.py --fixtures
 
 ---
 
-## 8. 目录结构
+## 9. 目录结构
 
 ```text
 shipping-billing-agent/
@@ -380,6 +427,7 @@ shipping-billing-agent/
 │  ├─ storage/ file_exposer.py / bills_repo.py / outputs.py / status.py
 │  ├─ tools/ ocr_selfcheck.py / llm_selfcheck.py
 │  └─ web/static/ index.html / style.css / app.js
+├─ docs/images/            # README 截图
 ├─ eval/ golden/ + make_fixtures.py + run_eval.py + reports/
 ├─ tests/ unit/ + integration/ + fixtures/
 ├─ samples/ original/ + generated/ + bills/
@@ -390,7 +438,7 @@ shipping-billing-agent/
 
 ---
 
-## 9. 故障排查
+## 10. 故障排查
 
 | 现象 | 原因 | 处理 |
 | --- | --- | --- |
@@ -405,7 +453,7 @@ shipping-billing-agent/
 
 ---
 
-## 10. 已知边界（如实说明）
+## 11. 已知边界（如实说明）
 
 1. **一次运行只支持一个记账主体**（PRD Q1）；多主体需分批次或改造配置。
 2. **扫描件依赖公网文件外发**；无云桶/公网代理时，扫描 PDF 与图片只能送复核。文本型 PDF、Excel、Word、EML 不受影响。
@@ -420,7 +468,7 @@ shipping-billing-agent/
 
 ---
 
-## 11. 安全与合规
+## 12. 安全与合规
 
 - 云桶必须私有 + 预签名短 TTL + OCR 完成即删；公共临时图床默认关闭；
 - AK/SK、LLM key 只走环境变量，仓库中无硬编码密钥；
@@ -431,7 +479,7 @@ shipping-billing-agent/
 
 ---
 
-## 12. 验收与文档
+## 13. 验收与文档
 
 - 验收自查表（AC-1~AC-11 逐项证据）：`../docx/验收自查表.md`
 - 基于 Web 的演示脚本：`../docx/演示脚本.md`
