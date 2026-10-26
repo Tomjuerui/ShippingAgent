@@ -64,6 +64,8 @@ class LLMConfig(BaseModel):
     structured_output: str = "auto"
     cache_enabled: bool = True
     cache_dir: str = ".cache/llm"
+    # 批级瞬时不可用（超时/5xx/限流冷却）重试前的退避秒数；0 = 关闭（测试默认关闭）
+    unavailable_retry_seconds: int = 0
 
     def active_profile(self) -> LLMProfile:
         name = os.environ.get("LLM_PROFILE") or self.profile

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import os
+import re
+import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
@@ -15,7 +17,7 @@ from app.agent.nodes.assemble import assemble_records
 from app.agent.nodes.extract import extract_uir
 from app.agent.nodes.ingest import IngestedFile, discover_inputs
 from app.agent.nodes.match import decide_operation, match_charge
-from app.agent.nodes.normalize import normalize_document
+from app.agent.nodes.normalize import map_document_type, normalize_document
 from app.agent.nodes.ocr_client import (
     OCRClient,
     OCRLowQuality,
@@ -43,20 +45,26 @@ from app.extraction.llm_client import (
     SchemaRetryExceeded,
 )
 from app.extraction.schemas import (
+    AuditTrailOut,
     BatchMeta,
     BatchOutput,
     BatchStatus,
     BatchSummary,
     BillRecord,
+    DocumentInfoOut,
     FileProgress,
     FileResultOut,
+    FinancialAttributesOut,
     MatchKeyCoverage,
+    MatchLevel,
     OperationCounts,
     Operation,
     SourceInfo,
+    SourceOut,
     UIRBlock,
     UIRDocument,
     UIRTable,
+    ValidationOut,
 )
 from app.governance.dictionaries import load_dicts
 from app.storage.bills_repo import BillsRepository, load_bills
@@ -183,6 +191,101 @@ def _file_result(task: FileTask) -> FileResultOut:
 
 
 # --------------------------------------------------------------------------- #
+# 空提取守卫（缺陷 P1-4）：LLM 返回结构合法但零费用时不得静默通过
+# --------------------------------------------------------------------------- #
+_AMOUNT_HINT = re.compile(
+    r"(?:USD|CNY|RMB|EUR|HKD|JPY|GBP)\s*[:：]?\s*[-+]?[\d,]+"
+    r"|\$\s*[-+]?[\d,]+"
+    r"|[-+]?[\d,]+\.\d{2}\b",
+    re.IGNORECASE,
+)
+_BILL_TITLE_HINT = re.compile(
+    r"debit\s*note|credit\s*note|\binvoice\b|\bstatement\b|arrival\s*notice"
+    r"|total\s+amount|grand\s+total|借记|贷记|发票|对账单|账单",
+    re.IGNORECASE,
+)
+
+
+def _looks_like_bill_text(text: str) -> bool:
+    return bool(_AMOUNT_HINT.search(text or ""))
+
+
+def _looks_like_bill_title(text: str) -> bool:
+    return bool(_BILL_TITLE_HINT.search(text or ""))
+
+
+def _empty_extraction_placeholder(work: ExtractionWork, settings: Settings) -> BillRecord | None:
+    """零费用但原文具备账单特征 → 生成占位复核记录，杜绝静默漏记。
+
+    触发条件（二选一）：
+    1. LLM 识别出单据（document_type / reference_no）但零费用，且原文含金额特征；
+    2. LLM 一无所获，但原文同时具备账单标题特征与金额特征。
+    """
+    identifying = next(
+        (
+            extraction
+            for extraction in work.extractions
+            if extraction.document_type or extraction.reference_no
+        ),
+        None,
+    )
+    source_text = work.uir.full_text()
+    if not _looks_like_bill_text(source_text):
+        return None
+    if identifying is None and not _looks_like_bill_title(source_text):
+        return None
+    sha = work.file.sha256
+    src = work.uir.source
+    doc_type = None
+    ref = None
+    if identifying is not None:
+        doc_type = map_document_type(identifying.document_type) or identifying.document_type
+        ref = identifying.reference_no
+        suspicious_line = (
+            f"LLM 识别到单据（类型 {identifying.document_type} / 编号 {ref}），但未返回任何费用行"
+        )
+    else:
+        suspicious_line = "LLM 未返回任何单据信息，但原文具备账单标题与金额特征"
+    reasoning = [
+        f"来源文件：{work.file.file_name}（{work.file.detected_type}）；SHA-256 {sha[:12]}…",
+        suspicious_line,
+        "疑似空提取异常（模型能力或结构化输出降级问题）",
+        "按 fail-safe 送人工复核（EXTRACTION_EMPTY），不自动入账、不写入幂等账本",
+    ]
+    return BillRecord(
+        record_id=f"{sha[:8]}-E001",
+        operation=Operation.PENDING_REVIEW,
+        document_info=DocumentInfoOut(
+            document_type=doc_type,
+            reference_no=ref,
+            document_date=identifying.document_date if identifying is not None else None,
+        ),
+        financial_attributes=FinancialAttributesOut(
+            accounting_entity=settings.accounting_entity.name,
+            posting_type=None,
+        ),
+        validation=ValidationOut(passed=True, issues=[]),
+        confidence=0.0,
+        low_confidence=True,
+        review_reason="EXTRACTION_EMPTY",
+        source=SourceOut(
+            file_name=src.file_name or work.file.file_name,
+            file_type=src.file_type,
+            file_sha256=sha,
+            email_subject=src.email_subject,
+            email_from=src.email_from,
+            email_message_id=src.email_message_id,
+            email_date=src.email_date,
+            content_node_id=work.uir.content_node_id,
+        ),
+        audit_trail=AuditTrailOut(
+            original_text_snippet=source_text[:200],
+            ai_reasoning=reasoning,
+        ),
+    )
+
+
+# --------------------------------------------------------------------------- #
 # 节点
 # --------------------------------------------------------------------------- #
 def _ingest_node(ctx: RunContext):
@@ -219,9 +322,16 @@ def _ingest_node(ctx: RunContext):
                             prebuilt.extend(clones)
                             task.status = "skipped"
                             task.duplicate_of = previous_batch
+                            nochange = sum(
+                                1 for clone in clones if clone.operation == Operation.NOCHANGE
+                            )
+                            pending = len(clones) - nochange
+                            breakdown = f"NOCHANGE {nochange} 条"
+                            if pending:
+                                breakdown += f"，维持待复核 {pending} 条"
                             task.message = (
                                 f"重复提交（DUPLICATE_SUBMISSION）：与批次 {previous_batch} 文件哈希相同，"
-                                f"输出 {len(clones)} 条 NOCHANGE 记录"
+                                f"输出 {len(clones)} 条记录（{breakdown}），未重复入账"
                             )
                         else:
                             task.status = "skipped"
@@ -413,26 +523,44 @@ def _extract_node(ctx: RunContext):
         errors: list[tuple[int, str, str]] = []
         max_chars = ctx.settings.pipeline.max_text_chars_per_chunk
         workers = max(1, ctx.settings.web.concurrency)
-        with ThreadPoolExecutor(max_workers=workers) as pool:
-            futures = {
-                pool.submit(extract_uir, work.uir, client, max_chars): index
-                for index, work in enumerate(uirs)
-            }
-            for future in as_completed(futures):
-                index = futures[future]
-                try:
-                    extractions = future.result()
-                    results[index] = ExtractionWork(
-                        file=uirs[index].file,
-                        uir=uirs[index].uir,
-                        extractions=extractions,
-                    )
-                except LLMUnavailable as exc:
-                    errors.append((index, "LLM_UNAVAILABLE", str(exc)))
-                except SchemaRetryExceeded as exc:
-                    errors.append((index, "SCHEMA_RETRY_EXCEEDED", str(exc)))
-                except Exception as exc:
-                    errors.append((index, "OTHER", str(exc)))
+
+        def _submit(indexes: set[int]) -> None:
+            with ThreadPoolExecutor(max_workers=workers) as pool:
+                futures = {
+                    pool.submit(extract_uir, uirs[index].uir, client, max_chars): index
+                    for index in indexes
+                }
+                for future in as_completed(futures):
+                    index = futures[future]
+                    try:
+                        extractions = future.result()
+                        results[index] = ExtractionWork(
+                            file=uirs[index].file,
+                            uir=uirs[index].uir,
+                            extractions=extractions,
+                        )
+                    except LLMUnavailable as exc:
+                        errors.append((index, "LLM_UNAVAILABLE", str(exc)))
+                    except SchemaRetryExceeded as exc:
+                        errors.append((index, "SCHEMA_RETRY_EXCEEDED", str(exc)))
+                    except Exception as exc:
+                        errors.append((index, "OTHER", str(exc)))
+
+        _submit(set(range(len(uirs))))
+
+        # 批级重试（缺陷 P2-6）：LLM 端点瞬时不可用（超时/5xx/限流冷却）时，
+        # 等待一个退避窗口后对失败 UIR 重试一次，避免高峰期整批失败。
+        retry_seconds = getattr(ctx.settings.llm, "unavailable_retry_seconds", 0) or 0
+        retry_indexes = {index for index, reason, _ in errors if reason == "LLM_UNAVAILABLE"}
+        if retry_seconds > 0 and retry_indexes:
+            time.sleep(retry_seconds)
+            _submit(set(retry_indexes))
+            # 重试成功的条目移除旧错误；重试仍失败的保留原错误（新错误为重复项，忽略）
+            errors = [
+                entry
+                for entry in errors
+                if not (entry[0] in retry_indexes and results[entry[0]] is not None)
+            ]
 
         by_file: dict[str, list[ExtractionWork]] = {}
         for work in results:
@@ -451,11 +579,14 @@ def _extract_node(ctx: RunContext):
             if with_charges:
                 work.extractions = with_charges
                 extractions.append(work)
+        placeholders: dict[str, list[BillRecord]] = {}
         for task in state.get("files", []):
             if task.status != "extracting":
                 continue
             successful = by_file.get(task.sha256, [])
-            has_charges = any(extra.extractions for extra in successful)
+            has_charges = any(
+                any(extra.charges for extra in work.extractions) for work in successful
+            )
             if has_charges:
                 task.status = "deciding"
                 if task.sha256 in error_by_file:
@@ -468,10 +599,32 @@ def _extract_node(ctx: RunContext):
                 task.review_reason = reason
                 task.message = message
             else:
+                # 空提取守卫（缺陷 P1-4）：识别到单据却零费用、且原文含金额特征，
+                # 生成 EXTRACTION_EMPTY 占位复核记录，不允许静默漏记
                 task.status = "completed"
                 task.message = "未提取到费用行（非账单内容或无可入账费用）"
+                suspicious = [
+                    _empty_extraction_placeholder(work, ctx.settings)
+                    for work in successful
+                ]
+                suspicious = [record for record in suspicious if record is not None]
+                if suspicious:
+                    for order, record in enumerate(suspicious, start=1):
+                        record.record_id = f"{task.sha256[:8]}-E{order:03d}"
+                    placeholders[task.sha256] = suspicious
+                    task.review_reason = "EXTRACTION_EMPTY"
+                    task.message = (
+                        f"识别到单据但未提取到任何费用行（原文含金额特征），"
+                        f"已生成 {len(suspicious)} 条 EXTRACTION_EMPTY 待复核记录"
+                    )
             _sync_status(ctx, state)
-        return {"extractions": extractions, "files": state.get("files", [])}
+        prebuilt = list(state.get("prebuilt_records", []))
+        prebuilt.extend(record for records in placeholders.values() for record in records)
+        return {
+            "extractions": extractions,
+            "files": state.get("files", []),
+            "prebuilt_records": prebuilt,
+        }
 
     return node
 
@@ -575,6 +728,59 @@ def _match_node(ctx: RunContext):
                         operation_notes=notes,
                     )
                 )
+
+        # 主体解析补救（缺陷 P2-7）：输入单据双方无法定位记账主体（ENTITY_UNRESOLVED）、
+        # 但 L1–L3 唯一命中了含完整双方信息的已有账单时，用该账单双方重算 AR/AP。
+        # 弱键（L4/歧义）命中的账单双方不足以决定记账方向，保持复核。
+        rescued: dict[int, object] = {}
+        for decision in decisions:
+            arap = decision.arap
+            if arap is None or arap.review_reason != "ENTITY_UNRESOLVED":
+                continue
+            if id(decision.work) in rescued:
+                decision.arap = rescued[id(decision.work)]  # type: ignore[assignment]
+                continue
+            match = decision.match
+            bill = match.bill
+            if (
+                bill is None
+                or match.level not in {MatchLevel.L1, MatchLevel.L2, MatchLevel.L3}
+                or not (bill.transaction_party.issuer or bill.transaction_party.recipient)
+            ):
+                continue
+            entity = ctx.settings.accounting_entity.name
+            amount = document_amount(
+                [charge.amount for charge in decision.work.doc.charges],
+                [
+                    total.amount
+                    for total in decision.work.doc.totals
+                    if total.kind == "total" and total.amount is not None
+                ],
+            )
+            retry = determine_posting_type(
+                document_type=bill.document_info.document_type or decision.work.doc.document_type,
+                issuer=bill.transaction_party.issuer,
+                recipient=bill.transaction_party.recipient,
+                entity=entity,
+                aliases=ctx.settings.accounting_entity.aliases,
+                amount=amount,
+                policy=ctx.settings.arap.policy,
+                direction_statement=decision.work.doc.direction_statement,
+                ar_keywords=ctx.settings.arap.direction_ar_keywords,
+                ap_keywords=ctx.settings.arap.direction_ap_keywords,
+            )
+            if retry.posting_type is not None:
+                retry.reasoning.insert(
+                    0,
+                    f"输入单据双方无法定位记账主体，但 {match.level.value} 唯一命中已有账单 "
+                    f"{bill.bill_id}（签发方 {bill.transaction_party.issuer} / 接收方 "
+                    f"{bill.transaction_party.recipient}），以已有账单双方重算 AR/AP",
+                )
+                rescued[id(decision.work)] = retry
+                decision.arap = retry
+            else:
+                rescued[id(decision.work)] = arap
+
         # 同一已有账单费用行被多个输入费用命中：无法确定唯一对应关系，全部送复核
         shared: dict[int, list[ChargeDecision]] = {}
         for decision in decisions:
@@ -686,12 +892,17 @@ def _finalize_node(ctx: RunContext):
                 ocr_exposer=exposer,
                 extraction_mode=ctx.extraction_mode,
             ),
+            warnings=list(dict.fromkeys(state.get("warnings", []) or [])),
         )
         write_outputs(batch, ctx.output_dir)
         for task in files:
             if task.status == "completed" and not task.review_reason:
                 ctx.ledger[task.sha256] = ctx.batch_id
-        save_ledger(ctx.output_dir, ctx.ledger)
+        # 账本合并写回（缺陷 P1-5）：--ignore-ledger 只影响读取，
+        # 写回时先加载磁盘上的历史账本再合并，避免覆盖清空既有记录。
+        merged_ledger = load_ledger(ctx.output_dir)
+        merged_ledger.update(ctx.ledger)
+        save_ledger(ctx.output_dir, merged_ledger)
         _sync_status(ctx, {**state, "records": records}, status="completed")  # type: ignore[arg-type]
         return {"batch_output": batch, "files": files, "records": records}
 
